@@ -3,11 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <title>Teste Firebase Realtime Database</title>
-  <!-- Importar Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-database.js"></script>
-  <!-- Importar Firebase Auth se necessário -->
-  <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-auth.js"></script>
 </head>
 <body>
   <h1>Teste de Conexão com Firebase Realtime Database</h1>
@@ -33,7 +28,14 @@
   <button onclick="listarPessoas()">Atualizar Lista</button>
   <div id="output"></div>
 
-  <script>
+  <!-- Importar Firebase SDKs -->
+  <script type="module">
+    // Importar as funções necessárias do SDK do Firebase
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.17.2/firebase-app.js';
+    import { getDatabase, ref, set, push, get, child, remove } from 'https://www.gstatic.com/firebasejs/9.17.2/firebase-database.js';
+    // Se estiver usando autenticação, importe também:
+    // import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/9.17.2/firebase-auth.js';
+
     // Configuração do Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyC2Zortaa5QFHDHbOUxrCr1fhIRvvtJ2DQ",
@@ -46,12 +48,12 @@
     };
 
     // Inicializar Firebase
-    firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
 
-    // Se estiver usando autenticação (descomente as linhas abaixo)
-    // const auth = firebase.auth();
-    // auth.signInAnonymously().catch((error) => {
+    // Se estiver usando autenticação, inicialize-a:
+    // const auth = getAuth();
+    // signInAnonymously(auth).catch((error) => {
     //   console.error("Erro ao autenticar:", error);
     // });
 
@@ -65,10 +67,10 @@
       const telefone = document.getElementById('telefone').value;
       const endereco = document.getElementById('endereco').value;
 
-      // Gerar um novo ID único
-      const novaPessoaRef = database.ref('pessoas/').push();
+      // Gerar uma nova referência com um ID único
+      const novaPessoaRef = push(ref(database, 'pessoas'));
 
-      novaPessoaRef.set({
+      set(novaPessoaRef, {
         nome: nome,
         idade: parseInt(idade),
         email: email,
@@ -83,24 +85,10 @@
       });
     });
 
-    // Função para remover uma pessoa
-    function removerPessoa(id) {
-      if (confirm('Tem certeza que deseja remover esta pessoa?')) {
-        database.ref('pessoas/' + id).remove()
-        .then(() => {
-          alert('Pessoa removida com sucesso!');
-          listarPessoas();
-        })
-        .catch((error) => {
-          alert('Erro ao remover pessoa: ' + error.message);
-        });
-      }
-    }
-
     // Função para listar pessoas
     function listarPessoas() {
-      const pessoasRef = database.ref('pessoas/');
-      pessoasRef.get().then((snapshot) => {
+      const pessoasRef = ref(database, 'pessoas');
+      get(pessoasRef).then((snapshot) => {
         if (snapshot.exists()) {
           const dados = snapshot.val();
           let output = '';
@@ -126,6 +114,20 @@
       }).catch((error) => {
         document.getElementById("output").innerText = "Erro ao ler dados: " + error.message;
       });
+    }
+
+    // Função para remover uma pessoa
+    function removerPessoa(id) {
+      if (confirm('Tem certeza que deseja remover esta pessoa?')) {
+        remove(ref(database, 'pessoas/' + id))
+        .then(() => {
+          alert('Pessoa removida com sucesso!');
+          listarPessoas();
+        })
+        .catch((error) => {
+          alert('Erro ao remover pessoa: ' + error.message);
+        });
+      }
     }
 
     // Opcional: listar pessoas ao carregar a página
