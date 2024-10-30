@@ -31,11 +31,11 @@
   <!-- Importar Firebase SDKs -->
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.17.2/firebase-app.js';
-    import { getDatabase, ref, set, push, get, remove } from 'https://www.gstatic.com/firebasejs/9.17.2/firebase-database.js';
+    import { getDatabase, ref, set, get, remove } from 'https://www.gstatic.com/firebasejs/9.17.2/firebase-database.js';
 
     // Configuração do Firebase
     const firebaseConfig = {
-      apiKey: "SUA_API_KEY",
+      apiKey: "AIzaSyC2Zortaa5QFHDHbOUxrCr1fhIRvvtJ2DQ",
       authDomain: "minidatabase-bb5de.firebaseapp.com",
       databaseURL: "https://minidatabase-bb5de-default-rtdb.firebaseio.com",
       projectId: "minidatabase-bb5de",
@@ -48,49 +48,56 @@
     const app = initializeApp(firebaseConfig);
     const database = getDatabase(app);
 
-    // Função para adicionar uma nova pessoa com ID sequencial
-    function adicionarPessoaSequencial() {
+    // Função para adicionar uma nova pessoa
+    async function adicionarPessoa() {
       const nome = document.getElementById('nome').value;
       const idade = document.getElementById('idade').value;
       const email = document.getElementById('email').value;
       const telefone = document.getElementById('telefone').value;
       const endereco = document.getElementById('endereco').value;
 
-      const lastIdRef = ref(database, 'lastId');
+      try {
+        // Referência para 'pessoas'
+        const pessoasRef = ref(database, 'pessoas');
 
-      get(lastIdRef).then((snapshot) => {
-        let newId = 1;
+        // Obter os IDs existentes
+        const snapshot = await get(pessoasRef);
+
+        let newId = 1; // ID inicial
+
         if (snapshot.exists()) {
-          newId = snapshot.val() + 1;
+          const dados = snapshot.val();
+          const ids = Object.keys(dados).map(id => parseInt(id)).filter(id => !isNaN(id));
+
+          if (ids.length > 0) {
+            const maxId = Math.max(...ids);
+            newId = maxId + 1;
+          }
         }
 
-        // Atualizar o lastId no banco de dados
-        set(lastIdRef, newId).then(() => {
-          // Usar o newId como chave para a nova pessoa
-          const pessoaRef = ref(database, 'pessoas/' + newId);
-          set(pessoaRef, {
-            nome: nome,
-            idade: parseInt(idade),
-            email: email,
-            telefone: telefone,
-            endereco: endereco
-          }).then(() => {
-            alert('Pessoa adicionada com sucesso!');
-            document.getElementById('addPessoaForm').reset();
-            listarPessoas();
-          }).catch((error) => {
-            alert('Erro ao adicionar pessoa: ' + error.message);
-          });
+        // Adicionar a nova pessoa com o novo ID
+        const pessoaRef = ref(database, 'pessoas/' + newId);
+        await set(pessoaRef, {
+          nome: nome,
+          idade: parseInt(idade),
+          email: email,
+          telefone: telefone,
+          endereco: endereco
         });
-      }).catch((error) => {
-        alert('Erro ao obter o último ID: ' + error.message);
-      });
+
+        alert('Pessoa adicionada com sucesso!');
+        document.getElementById('addPessoaForm').reset();
+        listarPessoas();
+
+      } catch (error) {
+        alert('Erro ao adicionar pessoa: ' + error.message);
+      }
     }
 
     // Atualizar o evento de submissão do formulário
     document.getElementById('addPessoaForm').addEventListener('submit', function(e) {
       e.preventDefault();
-      adicionarPessoaSequencial();
+      adicionarPessoa();
     });
 
     // Função para listar pessoas
