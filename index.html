@@ -6,17 +6,37 @@
   <!-- Importar Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-database.js"></script>
+  <!-- Importar Firebase Auth se necessário -->
+  <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-auth.js"></script>
 </head>
 <body>
   <h1>Teste de Conexão com Firebase Realtime Database</h1>
-  <button onclick="addData()">Adicionar Dados</button>
-  <button onclick="readData()">Ler Dados</button>
+
+  <!-- Formulário para adicionar nova pessoa -->
+  <h2>Adicionar Nova Pessoa</h2>
+  <form id="addPessoaForm">
+    <label for="nome">Nome:</label><br>
+    <input type="text" id="nome" name="nome" required><br>
+    <label for="idade">Idade:</label><br>
+    <input type="number" id="idade" name="idade" required><br>
+    <label for="email">Email:</label><br>
+    <input type="email" id="email" name="email" required><br>
+    <label for="telefone">Telefone:</label><br>
+    <input type="text" id="telefone" name="telefone" required><br>
+    <label for="endereco">Endereço:</label><br>
+    <input type="text" id="endereco" name="endereco" required><br><br>
+    <button type="submit">Adicionar Pessoa</button>
+  </form>
+
+  <!-- Botão para listar pessoas -->
+  <h2>Lista de Pessoas</h2>
+  <button onclick="listarPessoas()">Atualizar Lista</button>
   <div id="output"></div>
 
   <script>
     // Configuração do Firebase
     const firebaseConfig = {
-      apiKey: "AIzaSyC2Zortaa5QFHDHbOUxrCr1fhIRvvtJ2DQ", // Substitua aqui
+      apiKey: "AIzaSyC2Zortaa5QFHDHbOUxrCr1fhIRvvtJ2DQ",
       authDomain: "minidatabase-bb5de.firebaseapp.com",
       databaseURL: "https://minidatabase-bb5de-default-rtdb.firebaseio.com",
       projectId: "minidatabase-bb5de",
@@ -26,27 +46,80 @@
     };
 
     // Inicializar Firebase
-    const app = firebase.initializeApp(firebaseConfig);
+    firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
 
-    // Função para adicionar dados
-    function addData() {
-      const dataRef = database.ref('teste/');
-      dataRef.set({
-        mensagem: "Olá, Firebase!"
+    // Se estiver usando autenticação (descomente as linhas abaixo)
+    // const auth = firebase.auth();
+    // auth.signInAnonymously().catch((error) => {
+    //   console.error("Erro ao autenticar:", error);
+    // });
+
+    // Função para adicionar uma nova pessoa
+    document.getElementById('addPessoaForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const nome = document.getElementById('nome').value;
+      const idade = document.getElementById('idade').value;
+      const email = document.getElementById('email').value;
+      const telefone = document.getElementById('telefone').value;
+      const endereco = document.getElementById('endereco').value;
+
+      // Gerar um novo ID único
+      const novaPessoaRef = database.ref('pessoas/').push();
+
+      novaPessoaRef.set({
+        nome: nome,
+        idade: parseInt(idade),
+        email: email,
+        telefone: telefone,
+        endereco: endereco
       }).then(() => {
-        document.getElementById("output").innerText = "Dados adicionados com sucesso!";
+        alert('Pessoa adicionada com sucesso!');
+        document.getElementById('addPessoaForm').reset();
+        listarPessoas();
       }).catch((error) => {
-        document.getElementById("output").innerText = "Erro ao adicionar dados: " + error.message;
+        alert('Erro ao adicionar pessoa: ' + error.message);
       });
+    });
+
+    // Função para remover uma pessoa
+    function removerPessoa(id) {
+      if (confirm('Tem certeza que deseja remover esta pessoa?')) {
+        database.ref('pessoas/' + id).remove()
+        .then(() => {
+          alert('Pessoa removida com sucesso!');
+          listarPessoas();
+        })
+        .catch((error) => {
+          alert('Erro ao remover pessoa: ' + error.message);
+        });
+      }
     }
 
-    // Função para ler dados
-    function readData() {
-      const dataRef = database.ref('teste/');
-      dataRef.get().then((snapshot) => {
+    // Função para listar pessoas
+    function listarPessoas() {
+      const pessoasRef = database.ref('pessoas/');
+      pessoasRef.get().then((snapshot) => {
         if (snapshot.exists()) {
-          document.getElementById("output").innerText = "Dados: " + JSON.stringify(snapshot.val());
+          const dados = snapshot.val();
+          let output = '';
+          for (let id in dados) {
+            const pessoa = dados[id];
+            output += `<div>
+              <p>
+                <strong>ID:</strong> ${id}<br>
+                <strong>Nome:</strong> ${pessoa.nome}<br>
+                <strong>Idade:</strong> ${pessoa.idade}<br>
+                <strong>Email:</strong> ${pessoa.email}<br>
+                <strong>Telefone:</strong> ${pessoa.telefone}<br>
+                <strong>Endereço:</strong> ${pessoa.endereco}
+              </p>
+              <button onclick="removerPessoa('${id}')">Remover</button>
+              <hr>
+            </div>`;
+          }
+          document.getElementById("output").innerHTML = output;
         } else {
           document.getElementById("output").innerText = "Nenhum dado encontrado!";
         }
@@ -54,6 +127,11 @@
         document.getElementById("output").innerText = "Erro ao ler dados: " + error.message;
       });
     }
+
+    // Opcional: listar pessoas ao carregar a página
+    window.onload = function() {
+      listarPessoas();
+    };
   </script>
 </body>
 </html>
