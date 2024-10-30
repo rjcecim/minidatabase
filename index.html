@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Teste Firebase Realtime Database</title>
+  <!-- Importar Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-database.js"></script>
+</head>
+<body>
+  <h1>Teste de Conexão com Firebase Realtime Database</h1>
+  <button onclick="addData()">Adicionar Dados</button>
+  <button onclick="readData()">Ler Dados</button>
+  <div id="output"></div>
+
+  <script>
+    // Configuração do Firebase
+    const firebaseConfig = {
+      apiKey: "SUA_API_KEY", // Substitua aqui
+      authDomain: "minidatabase-bb5de.firebaseapp.com",
+      databaseURL: "https://minidatabase-bb5de-default-rtdb.firebaseio.com",
+      projectId: "minidatabase-bb5de",
+      storageBucket: "minidatabase-bb5de.appspot.com",
+      messagingSenderId: "468595906467",
+      appId: "1:468595906467:web:d6b7215ba857cfe1ef2c16"
+    };
+
+    // Inicializar Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    // Função para adicionar dados
+    function addData() {
+      const dataRef = database.ref('teste/');
+      dataRef.set({
+        mensagem: "Olá, Firebase!"
+      }).then(() => {
+        document.getElementById("output").innerText = "Dados adicionados com sucesso!";
+      }).catch((error) => {
+        document.getElementById("output").innerText = "Erro ao adicionar dados: " + error.message;
+      });
+    }
+
+    // Função para ler dados
+    function readData() {
+      const dataRef = database.ref('teste/');
+      dataRef.get().then((snapshot) => {
+        if (snapshot.exists()) {
+          document.getElementById("output").innerText = "Dados: " + JSON.stringify(snapshot.val());
+        } else {
+          document.getElementById("output").innerText = "Nenhum dado encontrado!";
+        }
+      }).catch((error) => {
+        document.getElementById("output").innerText = "Erro ao ler dados: " + error.message;
+      });
+    }
+  </script>
+</body>
+</html>
