@@ -2,35 +2,44 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Teste Firebase Realtime Database</title>
+  <title>Meu Projeto com Firebase e GitHub Pages</title>
 </head>
 <body>
-  <h1>Teste de Conexão com Firebase Realtime Database</h1>
+  <h1>Bem-vindo ao Meu Projeto</h1>
+
+  <!-- Botões de autenticação -->
+  <button id="googleLoginButton">Login com Google</button>
+  <button id="logoutButton" style="display: none;">Logout</button>
 
   <!-- Formulário para adicionar nova pessoa -->
-  <h2>Adicionar Nova Pessoa</h2>
-  <form id="addPessoaForm">
-    <label for="nome">Nome:</label><br>
-    <input type="text" id="nome" name="nome" required><br>
-    <label for="idade">Idade:</label><br>
-    <input type="number" id="idade" name="idade" required><br>
-    <label for="email">Email:</label><br>
-    <input type="email" id="email" name="email" required><br>
-    <label for="telefone">Telefone:</label><br>
-    <input type="text" id="telefone" name="telefone" required><br>
-    <label for="endereco">Endereço:</label><br>
-    <input type="text" id="endereco" name="endereco" required><br><br>
-    <button type="submit">Adicionar Pessoa</button>
-  </form>
+  <div id="addPessoaDiv" style="display: none;">
+    <h2>Adicionar Nova Pessoa</h2>
+    <form id="addPessoaForm">
+      <label for="nome">Nome:</label><br>
+      <input type="text" id="nome" name="nome" required><br>
+      <label for="idade">Idade:</label><br>
+      <input type="number" id="idade" name="idade" required><br>
+      <label for="email">Email:</label><br>
+      <input type="email" id="email" name="email" required><br>
+      <label for="telefone">Telefone:</label><br>
+      <input type="text" id="telefone" name="telefone" required><br>
+      <label for="endereco">Endereço:</label><br>
+      <input type="text" id="endereco" name="endereco" required><br><br>
+      <button type="submit">Adicionar Pessoa</button>
+    </form>
+  </div>
 
-  <!-- Botão para listar pessoas -->
-  <h2>Lista de Pessoas</h2>
-  <button onclick="listarPessoas()">Atualizar Lista</button>
-  <div id="output"></div>
+  <!-- Área para listar pessoas -->
+  <div id="listaPessoasDiv" style="display: none;">
+    <h2>Lista de Pessoas</h2>
+    <button onclick="listarPessoas()">Atualizar Lista</button>
+    <div id="output"></div>
+  </div>
 
   <!-- Importar Firebase SDKs -->
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.17.2/firebase-app.js';
+    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/9.17.2/firebase-auth.js';
     import { getDatabase, ref, set, get, remove } from 'https://www.gstatic.com/firebasejs/9.17.2/firebase-database.js';
 
     // Configuração do Firebase
@@ -46,29 +55,78 @@
 
     // Inicializar Firebase
     const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
     const database = getDatabase(app);
 
+    // Provedor de Autenticação Google
+    const provider = new GoogleAuthProvider();
+
+    // Função de Login com Google
+    document.getElementById('googleLoginButton').addEventListener('click', () => {
+      signInWithPopup(auth, provider)
+        .then((result) => {
+          const user = result.user;
+          console.log('Usuário autenticado com Google:', user.uid);
+        })
+        .catch((error) => {
+          console.error('Erro ao autenticar com Google:', error.message);
+        });
+    });
+
+    // Função de Logout
+    document.getElementById('logoutButton').addEventListener('click', () => {
+      signOut(auth).then(() => {
+        console.log('Logout realizado com sucesso');
+      }).catch((error) => {
+        console.error('Erro ao fazer logout:', error);
+      });
+    });
+
+    // Verificar o estado de autenticação
+    onAuthStateChanged(auth, (user) => {
+      if (user && user.uid === 'gx1LGNafpwZHOyhPQCjC1XHoLg23') {
+        // Usuário autenticado e é o dono
+        document.getElementById('googleLoginButton').style.display = 'none';
+        document.getElementById('logoutButton').style.display = 'inline';
+        document.getElementById('addPessoaDiv').style.display = 'block';
+        document.getElementById('listaPessoasDiv').style.display = 'block';
+        listarPessoas();
+      } else {
+        // Usuário não autenticado ou não é o dono
+        document.getElementById('googleLoginButton').style.display = 'inline';
+        document.getElementById('logoutButton').style.display = 'none';
+        document.getElementById('addPessoaDiv').style.display = 'none';
+        document.getElementById('listaPessoasDiv').style.display = 'none';
+      }
+    });
+
     // Função para adicionar uma nova pessoa
-    async function adicionarPessoa() {
-      const nome = document.getElementById('nome').value;
-      const idade = document.getElementById('idade').value;
-      const email = document.getElementById('email').value;
-      const telefone = document.getElementById('telefone').value;
-      const endereco = document.getElementById('endereco').value;
+    document.getElementById('addPessoaForm').addEventListener('submit', function(e) {
+      e.preventDefault();
 
+      const user = auth.currentUser;
+      if (user && user.uid === 'gx1LGNafpwZHOyhPQCjC1XHoLg23') {
+        const nome = document.getElementById('nome').value;
+        const idade = document.getElementById('idade').value;
+        const email = document.getElementById('email').value;
+        const telefone = document.getElementById('telefone').value;
+        const endereco = document.getElementById('endereco').value;
+
+        adicionarPessoa(nome, idade, email, telefone, endereco);
+      } else {
+        alert('Você não tem permissão para adicionar dados.');
+      }
+    });
+
+    async function adicionarPessoa(nome, idade, email, telefone, endereco) {
       try {
-        // Referência para 'pessoas'
         const pessoasRef = ref(database, 'pessoas');
-
-        // Obter os IDs existentes
         const snapshot = await get(pessoasRef);
 
         let newId = 1; // ID inicial
-
         if (snapshot.exists()) {
           const dados = snapshot.val();
           const ids = Object.keys(dados).map(id => parseInt(id)).filter(id => !isNaN(id));
-
           if (ids.length > 0) {
             const maxId = Math.max(...ids);
             newId = maxId + 1;
@@ -88,17 +146,10 @@
         alert('Pessoa adicionada com sucesso!');
         document.getElementById('addPessoaForm').reset();
         listarPessoas();
-
       } catch (error) {
         alert('Erro ao adicionar pessoa: ' + error.message);
       }
     }
-
-    // Atualizar o evento de submissão do formulário
-    document.getElementById('addPessoaForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      adicionarPessoa();
-    });
 
     // Função para listar pessoas
     function listarPessoas() {
@@ -133,22 +184,22 @@
 
     // Função para remover uma pessoa
     function removerPessoa(id) {
-      if (confirm('Tem certeza que deseja remover esta pessoa?')) {
-        remove(ref(database, 'pessoas/' + id))
-        .then(() => {
-          alert('Pessoa removida com sucesso!');
-          listarPessoas();
-        })
-        .catch((error) => {
-          alert('Erro ao remover pessoa: ' + error.message);
-        });
+      const user = auth.currentUser;
+      if (user && user.uid === 'gx1LGNafpwZHOyhPQCjC1XHoLg23') {
+        if (confirm('Tem certeza que deseja remover esta pessoa?')) {
+          remove(ref(database, 'pessoas/' + id))
+          .then(() => {
+            alert('Pessoa removida com sucesso!');
+            listarPessoas();
+          })
+          .catch((error) => {
+            alert('Erro ao remover pessoa: ' + error.message);
+          });
+        }
+      } else {
+        alert('Você não tem permissão para remover dados.');
       }
     }
-
-    // Listar pessoas ao carregar a página
-    window.onload = function() {
-      listarPessoas();
-    };
   </script>
 </body>
 </html>
